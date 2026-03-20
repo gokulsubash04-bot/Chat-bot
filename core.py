@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import datetime
+import wikipedia
 
 app = FastAPI()
 
@@ -18,18 +20,64 @@ class NameRequest(BaseModel):
 class QueryRequest(BaseModel):
     query: str
 
-user_names = {}
-
+# ---- MEMORY ----
+memory = {
+    "name": None,
+    "last_topic": None
+}
+# ---- SET NAME ----
 @app.post("/set_name")
 def set_name(req: NameRequest):
+    memory["name"] = req.name
     return {"message": f"Hi {req.name}"}
 
+# ---- MAIN QUERY ----
 @app.post("/query")
 def process_query(req: QueryRequest):
     query = req.query.lower()
+
+    # GREETING
     if "hello" in query:
+        if memory["name"]:
+            return {"response": f"Hi {memory['name']}!"}
         return {"response": "Hi there!"}
+
+    # TIME
+    elif "time" in query:
+        current_time = datetime.datetime.now().strftime("%H:%M:%S")
+        return {"response": f"Current time is {current_time}"}
+
+    # STORE NAME FROM CHAT
+    elif "my name is" in query:
+        name = query.replace("my name is", "").strip()
+        memory["name"] = name
+        return {"response": f"Nice to meet you {name}!"}
+
+    # RECALL NAME
+    elif "what is my name" in query:
+        if memory["name"]:
+            return {"response": f"Your name is {memory['name']}"}
+        return {"response": "I don't know your name yet."}
+
+    # EXIT
     elif "bye" in query:
         return {"response": "Goodbye!"}
+    # WIKIPEDIA
+    elif "who is" in query or "what is" in query:
+        try:
+            topic = query.replace("who is", "").replace("what is", "").strip()
+            memory["last_topic"] = topic
+            summary = wikipedia.summary(topic, sentences=2)
+            return {"response": summary}
+        except wikipedia.DisambiguationError as e:
+            return {"response": "There are multiple matches. Please be more specific."}
+        except wikipedia.PageError as e:
+            return {"response": "I couldn't find any information on that topic."}
+
+    elif"more" in query:
+        return{"response":wiki_more()}
+    
+
+    # DEFAULT
     else:
         return {"response": "I don't understand yet."}

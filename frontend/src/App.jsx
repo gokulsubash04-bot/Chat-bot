@@ -77,7 +77,7 @@ function App() {
     return (
       <div className="app-container fade-in">
         <div className="setup-screen">
-          <h2>Welcome to Jarvis</h2>
+          <h2>Welcome to version 1</h2>
           <p>Your personal AI assistant is ready.</p>
           <form className="setup-form" onSubmit={handleSetupSubmit}>
             <input 
@@ -121,7 +121,7 @@ function App() {
       <form className="input-area" onSubmit={handleSendMessage}>
         <input 
           type="text" 
-          placeholder="Ask Jarvis a question..." 
+          placeholder="Ask Bot a question..." 
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           disabled={isLoading}
