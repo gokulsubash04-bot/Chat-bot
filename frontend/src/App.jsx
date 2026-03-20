@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Send } from 'lucide-react';
+import { Send, Copy, Check } from 'lucide-react';
 
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -10,8 +10,10 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [copiedId, setCopiedId] = useState(null);
   
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -20,6 +22,33 @@ function App() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Don't focus if user is already typing in an input, or pressing combo shortcuts
+      if (
+        document.activeElement.tagName !== 'INPUT' && 
+        document.activeElement.tagName !== 'TEXTAREA' &&
+        e.key.length === 1 && 
+        !e.ctrlKey && 
+        !e.metaKey && 
+        !e.altKey
+      ) {
+        inputRef.current?.focus();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleCopy = (id, text) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => {
+      setCopiedId(null);
+    }, 2000);
+  };
 
   const handleSetupSubmit = async (e) => {
     e.preventDefault();
@@ -81,6 +110,7 @@ function App() {
           <p>Your personal AI assistant is ready.</p>
           <form className="setup-form" onSubmit={handleSetupSubmit}>
             <input 
+              ref={inputRef}
               type="text" 
               placeholder="Enter your name" 
               value={name}
@@ -107,12 +137,19 @@ function App() {
       <div className="chat-area">
         {messages.map((msg) => (
           <div key={msg.id} className={`message ${msg.sender}`}>
-            {msg.text}
+            <div className="message-content">{msg.text}</div>
+            <button 
+              className="copy-button" 
+              onClick={() => handleCopy(msg.id, msg.text)}
+              title="Copy message"
+            >
+              {copiedId === msg.id ? <Check size={14} /> : <Copy size={14} />}
+            </button>
           </div>
         ))}
         {isLoading && (
           <div className="message bot" style={{ opacity: 0.7 }}>
-            Typing...
+            <div className="message-content">Typing...</div>
           </div>
         )}
         <div ref={messagesEndRef} />
@@ -120,6 +157,7 @@ function App() {
 
       <form className="input-area" onSubmit={handleSendMessage}>
         <input 
+          ref={inputRef}
           type="text" 
           placeholder="Ask Bot a question..." 
           value={inputValue}

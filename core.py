@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import datetime
 import wikipedia
+from google import genai
 
 app = FastAPI()
 
@@ -13,7 +14,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+client = genai.Client(api_key="YOUR_API_KEY_HERE")
 class NameRequest(BaseModel):
     name: str
 
@@ -48,13 +49,13 @@ def process_query(req: QueryRequest):
         return {"response": f"Current time is {current_time}"}
 
     # STORE NAME FROM CHAT
-    elif "my name is" in query:
+    elif "my name " in query:
         name = query.replace("my name is", "").strip()
         memory["name"] = name
         return {"response": f"Nice to meet you {name}!"}
 
     # RECALL NAME
-    elif "what is my name" in query:
+    elif "know my name" in query:
         if memory["name"]:
             return {"response": f"Your name is {memory['name']}"}
         return {"response": "I don't know your name yet."}
@@ -76,8 +77,15 @@ def process_query(req: QueryRequest):
 
     elif"more" in query:
         return{"response":wiki_more()}
-    
-
+    elif"more"in query or"is that correct" in query:
+        print("Accoding to google")
+        return {"response": gemini_response.text}
+    elif "your name" in query:
+        return {"response": "Sorry I don't have a name yet."}
+    elif "wrong" in query:
+        print("Let me check again")
+        print("Accoding to google")
+        return {"response": gemini_response.text}
     # DEFAULT
     else:
         return {"response": "I don't understand yet."}
