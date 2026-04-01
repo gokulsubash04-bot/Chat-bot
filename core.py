@@ -3,18 +3,27 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import datetime
 import wikipedia
-from google import genai
+import os
+import warnings
+from dotenv import load_dotenv
+import ollama
+
+warnings.filterwarnings("ignore", category=UserWarning, module='wikipedia')
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-client = genai.Client(api_key="YOUR_API_KEY_HERE")
+
+load_dotenv()
+# Ollama runs locally, so no API key is typically needed.
+# Ensure ollama is running: `ollama run llama3`
+
 class NameRequest(BaseModel):
     name: str
 
@@ -24,8 +33,10 @@ class QueryRequest(BaseModel):
 # ---- MEMORY ----
 memory = {
     "name": None,
-    "last_topic": None
+    "last_topic": None,
+    "last_query": None
 }
+
 # ---- SET NAME ----
 @app.post("/set_name")
 def set_name(req: NameRequest):
@@ -37,8 +48,11 @@ def set_name(req: NameRequest):
 def process_query(req: QueryRequest):
     query = req.query.lower()
 
+    if not any(k in query for k in ["yes", "more", "is that correct", "wrong", "refer ollama", "refer ai"]):
+        memory["last_query"] = req.query
+
     # GREETING
-    if "hello" in query:
+    if "hello" in query or "hi" in query or "hey" in query:
         if memory["name"]:
             return {"response": f"Hi {memory['name']}!"}
         return {"response": "Hi there!"}
@@ -63,29 +77,53 @@ def process_query(req: QueryRequest):
     # EXIT
     elif "bye" in query:
         return {"response": "Goodbye!"}
-    # WIKIPEDIA
-    elif "who is" in query or "what is" in query:
-        try:
-            topic = query.replace("who is", "").replace("what is", "").strip()
-            memory["last_topic"] = topic
-            summary = wikipedia.summary(topic, sentences=2)
-            return {"response": summary}
-        except wikipedia.DisambiguationError as e:
-            return {"response": "There are multiple matches. Please be more specific."}
-        except wikipedia.PageError as e:
-            return {"response": "I couldn't find any information on that topic."}
-
-    elif"more" in query:
-        return{"response":wiki_more()}
-    elif"more"in query or"is that correct" in query:
-        print("Accoding to google")
-        return {"response": gemini_response.text}
+        
+    # YOUR NAME
     elif "your name" in query:
         return {"response": "Sorry I don't have a name yet."}
+        
+    # WIKIPEDIA
+    elif any(x in query for x in ["who is", "what is", "where is"]):
+        try:
+            topic = query.replace("who is", "").replace("where is", "").replace("what is", "").strip()
+            memory["last_topic"] = topic
+            summary = wikipedia.summary(topic, sentences=2)
+            return {"response": f"{summary}\n\ndid you need to refer ollama ?"}
+        except wikipedia.DisambiguationError:
+            return {"response": "There are multiple matches. Please be more specific."}
+        except wikipedia.PageError:
+            return {"response": "I couldn't find any information on that topic."}
+    elif any(k in query for k in ["more", "is that correct", "yes", "refer ollama", "refer ai"]):
+        print("According to ollama")
+        ollama_query = query
+        if any(k in query for k in ["yes", "more", "refer ollama", "refer ai"]):
+            if memory.get("last_query"):
+                ollama_query = f"more on it {memory['last_query']}"
+        try:
+            ollama_response = ollama.chat(
+                model='llama3.2',
+                messages=[{"role": "user", "content": ollama_query}],
+            )
+            return {"response": ollama_response['message']['content']}
+        except Exception as e:
+            return {"response": f"Ollama error: {str(e)}"}
+        
+    elif "your name" in query:
+        return {"response": "Sorry I don't have a name yet."}
+        
     elif "wrong" in query:
         print("Let me check again")
-        print("Accoding to google")
-        return {"response": gemini_response.text}
+        print("According to ollama")
+        try:
+            wrong_query = f"I was wrong about: {memory.get('last_query', '')}. Can you correct me?"
+            ollama_response = ollama.chat(
+                model='llama3.2',
+                messages=[{"role": "user", "content": wrong_query}],
+            )
+            return {"response": ollama_response['message']['content']}
+        except Exception as e:
+            return {"response": f"Ollama error: {str(e)}"}
+        
     # DEFAULT
     else:
         return {"response": "I don't understand yet."}

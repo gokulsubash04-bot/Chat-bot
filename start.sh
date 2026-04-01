@@ -2,7 +2,7 @@
 
 echo "Starting Jarvis Backend (Port 8000)..."
 source venv/bin/activate
-uvicorn core:app --port 8000 &
+uvicorn core:app --port 8000 --reload &
 BACKEND_PID=$!
 
 echo "Starting Jarvis Frontend (Port 5173)..."
