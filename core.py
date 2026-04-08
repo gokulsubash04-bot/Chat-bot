@@ -62,6 +62,9 @@ def process_query(req: QueryRequest):
         current_time = datetime.datetime.now().strftime("%H:%M:%S")
         return {"response": f"Current time is {current_time}"}
 
+    elif "who are you" in query:
+        return {"response": "I am a personal AI assistant created which is in testing form version 1.0 currently running as chatbot"}
+
     # STORE NAME FROM CHAT
     elif "my name " in query:
         name = query.replace("my name is", "").strip()
