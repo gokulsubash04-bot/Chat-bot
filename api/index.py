@@ -82,7 +82,7 @@ def process_query(req: QueryRequest):
     elif "who are you" in query:
 
         return {
-            "response": "I am a personal AI assistant created which is in testing form version 1.0 currently running as chatbot"
+            "response": "I am Chatbot version 2.2, a personal AI assistant."
         }
 
 
@@ -118,7 +118,7 @@ def process_query(req: QueryRequest):
 
     elif "your name" in query:
 
-        return {"response": "Sorry I don't have a name yet."}
+        return {"response": "My name is Chatbot version 2.2."}
 
 
     # WIKIPEDIA SEARCH

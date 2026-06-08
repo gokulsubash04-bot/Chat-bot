@@ -106,7 +106,7 @@ function App() {
     return (
       <div className="app-container fade-in">
         <div className="setup-screen">
-          <h2>Welcome to version 1</h2>
+          <h2>Welcome to Chatbot version 2.2</h2>
           <p>Your personal AI assistant is ready.</p>
           <form className="setup-form" onSubmit={handleSetupSubmit}>
             <input 
@@ -131,7 +131,7 @@ function App() {
     <div className="app-container fade-in">
       <div className="header">
         <div className="status"></div>
-        <h1>Jarvis AI</h1>
+        <h1>Chatbot version 2.2</h1>
       </div>
       
       <div className="chat-area">
